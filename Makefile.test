@@ -1,0 +1,100 @@
+# Makefile that has a convenient check target.
+# It can be included from another Makefile that only has a TESTS variable
+# defined like this
+#
+# TESTS ?=
+#
+# Runs the specified test executables. Prepends the test's name to each test's output
+# and gives a nice summary at the end of test execution about passed failed
+# tests.
+
+# Only bash is supported
+SHELL := /bin/bash
+
+THIS_FILE := $(realpath $(lastword $(MAKEFILE_LIST)))
+# The directory where Makefile.test (this file) resides
+THIS_FILE_DIR := $(shell dirname $(THIS_FILE))
+
+# FIRST_MAKEFILE may be passed from parent make to child make. If it is not
+# absent, do not overwrite it.
+FIRST_MAKEFILE ?= $(realpath $(firstword $(MAKEFILE_LIST)))
+export FIRST_MAKEFILE
+
+# The directory where the Makefile, that is invoked from the command line,
+# resides. That makefile would define the TESTS variable. We assume that the
+# binaries defined in the TESTS variable also reside in the directory as
+# the Makefile. The generated intermediate files will also go to this directory.
+FIRST_MAKEFILE_DIR ?= $(shell dirname $(FIRST_MAKEFILE))
+export FIRST_MAKEFILE_DIR
+
+# So that the child makefiles can see the same TESTS variable.
+export TESTS
+
+failedTestsName := .makefile_test_failed_tests
+executedTestsName := .makefile_test_executed_tests
+TEST_TARGETS := $(TESTS:%=TARGET_FOR_%)
+export TEST_TARGETS
+
+# If the tests need a different environment one can append to this variable.
+TEST_ENVIRONMENT = PYTHONPATH=$(THIS_FILE_DIR):$$PYTHONPATH PATH=$(THIS_FILE_DIR):$$PATH
+
+# TODO: Only write to intermediate files, if they exist already.
+# https://unix.stackexchange.com/q/405497/212862
+# There is still a race condition here. Maybe we should use sed for appending.
+define RUN_ONE_TEST
+TARGET_FOR_$(1): $$(FIRST_MAKEFILE_DIR)/$(1)
+	+@export PATH=$$$$(pwd):$$$$PATH; \
+          if [ -e $$(FIRST_MAKEFILE_DIR)/$$(executedTestsName) ]; then \
+             echo $$< >> $$(FIRST_MAKEFILE_DIR)/$$(executedTestsName); \
+          fi; \
+          $$(TEST_ENVIRONMENT) $$< 2>&1 | sed "s/^/  [$$$$(basename $$<)] /"; test $$$${PIPESTATUS[0]} -eq 0; \
+          if [ $$$$? -eq 0 ]; then \
+             echo " PASSED: $$$$(basename $$<)"; \
+          else \
+             echo " FAILED: $$$$(basename $$<)"; \
+             if [ -e $$(FIRST_MAKEFILE_DIR)/$$(failedTestsName) ]; then \
+                echo $$< >> $$(FIRST_MAKEFILE_DIR)/$$(failedTestsName); \
+             fi; \
+          fi;
+endef
+
+# Build the above rule to run one test, for all tests.
+$(foreach currtest,$(TESTS),$(eval $(call RUN_ONE_TEST,$(currtest))))
+
+# execute the tests and look at the generated temp files afterwards.
+actualCheck: $(TEST_TARGETS)
+	+@failed_tests=$$(cat $(FIRST_MAKEFILE_DIR)/$(failedTestsName) 2> /dev/null | wc -l;); \
+          executed_tests=$$(cat $(FIRST_MAKEFILE_DIR)/$(executedTestsName) 2> /dev/null | wc -l;); \
+          if [ $$failed_tests -ne 0 -a $$executed_tests -ne 0 ]; then \
+             echo ---------------------------------; \
+             echo "Failed $$failed_tests out of $$executed_tests tests"; \
+             echo ---------------------------------; \
+          elif [ $$failed_tests -eq 0 ]; then  \
+             echo ---------------------------------; \
+             echo "All $$executed_tests tests passed"; \
+             echo ---------------------------------; \
+          fi; \
+          exit $$failed_tests;
+
+# A commonly used bash command to clean intermediate files. Instead of writing
+# it every time re-use this variable.
+RM_INTERMEDIATE_FILES := rm -f $(FIRST_MAKEFILE_DIR)/$(failedTestsName) $(FIRST_MAKEFILE_DIR)/$(executedTestsName)
+
+# At the start of the make, we want to start with empty intermediate files.
+TRUNCATE_INTERMEDIATE_FILES := cat /dev/null > $(FIRST_MAKEFILE_DIR)/$(failedTestsName) && cat /dev/null > $(FIRST_MAKEFILE_DIR)/$(executedTestsName)
+
+# With trap make sure the clean step is always executed before and after the
+# tests run time. Do not leave residual files in the repo.
+check:
+	+@trap "code=\$$?; \
+           $(RM_INTERMEDIATE_FILES); \
+           exit \$${code};" EXIT; \
+          $(TRUNCATE_INTERMEDIATE_FILES); \
+          $(MAKE) -f $(THIS_FILE) actualCheck;
+
+all: check
+
+.PHONY: all check preCheck actualCheck $(TEST_TARGETS)
+.DEFAULT_GOAL := all
+
+

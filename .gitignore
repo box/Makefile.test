@@ -1,0 +1,9 @@
+
+# python virtual envs
+test/venv/
+
+# Python bytecode files
+*.pyc
+
+# Intermediate files created by Makefile.test
+**/.makefile_test_*ed_tests

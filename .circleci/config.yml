@@ -1,0 +1,60 @@
+
+defaults: &defaults
+  # This is the directory where circle ci checks out the repo.
+  working_directory: /home/circleci/project
+
+make_check: &make_check
+  name: make check
+  command: cd test; make check
+
+test_desc: &test_desc
+  <<: *defaults
+  steps:
+    - checkout
+    - run: *make_check
+
+version: 2
+jobs:
+   "ubuntu-16.04":
+     <<: *test_desc
+     docker:
+       - image: boxinc/makefile.test:ubuntu-16.04
+
+   "ubuntu-14.04":
+     <<: *test_desc
+     docker:
+       - image: boxinc/makefile.test:ubuntu-14.04
+
+   "ubuntu-12.04":
+     <<: *test_desc
+     docker:
+       - image: boxinc/makefile.test:ubuntu-12.04
+
+   "centos-7":
+     <<: *test_desc
+     docker:
+       - image: boxinc/makefile.test:centos-7
+
+   "allpass":
+     docker:
+       - image: ubuntu:14.04
+     steps:
+       - checkout
+       - run: echo allpass
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - "ubuntu-16.04"
+      - "ubuntu-14.04"
+      - "ubuntu-12.04"
+      - "centos-7"
+      - allpass:
+          requires:
+            - "ubuntu-16.04"
+            - "ubuntu-14.04"
+            - "ubuntu-12.04"
+            - "centos-7"
+
+
