@@ -2,6 +2,7 @@
 # Makefile.test
 
 [![Project Status](http://opensource.box.com/badges/stable.svg)](http://opensource.box.com/badges)
+[![CircleCI](https://circleci.com/gh/box/Makefile.test.svg?style=svg)](https://circleci.com/gh/box/Makefile.test)
 
 A makefile used for running test scripts.
 
