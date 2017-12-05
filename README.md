@@ -4,12 +4,23 @@
 [![Project Status](http://opensource.box.com/badges/stable.svg)](http://opensource.box.com/badges)
 [![CircleCI](https://circleci.com/gh/box/Makefile.test.svg?style=svg)](https://circleci.com/gh/box/Makefile.test)
 
-A makefile used for running test scripts.
+A makefile used for running test executables.
 
-Makefile.test can be used to execute any type of test scripts. Parallel, serial
-execution, various platforms and make versions are supported. Test scripts
+Makefile.test can be used to run any type of test executables. It is not
+language specific nor it requires any changes to your code. Parallel, serial
+execution, various platforms and make versions are supported. The executables
 can be organized in any desired way. The user only lists the test files, the
 rest is taken care of Makefile.test.
+
+Makefile.test does not contain any rules for compilation and other
+pre-processing steps. If your test executables are not scripts, but for example
+compiled binaries, you will need to extend Makefile.test with additional rules.
+Makefile.test can still be a good starting point for those scenarios.
+
+Makefile.test runs on a single host and therefore its parallelization is
+limited with the resources of one machine. If your test suite requires multiple
+hosts to run, [ClusterRunner](http://www.clusterrunner.com/) can be a better
+tool for your use case.
 
 ## Usage:
 
