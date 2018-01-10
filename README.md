@@ -110,7 +110,7 @@ All        1 tests passed
 In the directory you want to place Makefile.test execute the following:
 
 ```
-git submodule add git@git.dev.box.net:skynet/Makefile.test.git .Makefile.test
+git submodule add https://github.com/box/Makefile.test.git .Makefile.test
 ln -s .Makefile.test/Makefile.test
 ```
 
