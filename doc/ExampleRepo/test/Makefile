@@ -4,5 +4,6 @@ TESTS ?= \
 	ExampleTest1.sh \
 	ExampleTest2.py
 
-include ../Makefile.test
+MAKEFILE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+include $(MAKEFILE_DIR)/../Makefile.test
 
